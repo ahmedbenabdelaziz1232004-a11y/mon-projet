@@ -2,8 +2,10 @@ pipeline {
   agent any
   options { timestamps() }
   environment {
-    // ⚠️ REMPLACE "ahmed" PAR TON PSEUDO DOCKER HUB
-    IMAGE = 'ahmed/monapp' 
+    
+    IMAGE = 'hassenahmedbenabdelaziz
+
+/monapp' 
     TAG = "build-${env.BUILD_NUMBER}"
   }
   stages {
@@ -29,8 +31,14 @@ pipeline {
     }
     stage('Push (Docker Hub)') {
       steps {
-        // On ajoutera les identifiants Docker Hub plus tard, on va d'abord tester le Build
-        bat 'echo "Le push sera configuré à l\'étape suivante"'
+        withCredentials([usernamePassword(credentialsId: 'dockerhub-credits', usernameVariable: 'USER', passwordVariable: 'PASS')]) {
+          bat '''
+            echo %PASS% | docker login -u %USER% --password-stdin
+            docker tag %IMAGE%:%TAG% %IMAGE%:latest
+            docker push %IMAGE%:%TAG%
+            docker push %IMAGE%:latest
+          '''
+        }
       }
     }
   }
