@@ -1,34 +1,37 @@
 pipeline {
-    agent any
-    options { timestamps() }
-    stages {
-        stage('Étape 1 : Vérification du dépôt') {
-            steps {
-                bat 'echo === Étape 1 : Vérification du dépôt ==='
-                bat 'git status'
-            }
-        }
-        stage('Étape 2 : Afficher le contenu du projet') {
-            steps {
-                bat 'echo === Étape 2 : Afficher le contenu du projet ==='
-                bat 'dir'
-            }
-        }
-        stage('Étape 3 : Simuler un déploiement local') {
-            steps {
-                bat 'echo === Étape 3 : Simuler un déploiement local ==='
-                bat 'echo Le fichier index.html est prêt à être affiché'
-            }
-        }
-        stage('Étape 4 : Fin du build') {
-            steps {
-                bat 'echo === Étape 4 : Fin du build ==='
-                bat 'echo SUCCESS'
-            }
-        }
+  agent any
+  options { timestamps() }
+  environment {
+    // ⚠️ REMPLACE "ahmed" PAR TON PSEUDO DOCKER HUB
+    IMAGE = 'ahmed/monapp' 
+    TAG = "build-${env.BUILD_NUMBER}"
+  }
+  stages {
+    stage('Checkout') {
+      steps { checkout scm }
     }
-    post {
-        success { echo 'Build OK' }
-        failure { echo 'Build KO' }
+    stage('Docker Build') {
+      steps {
+        bat 'docker version'
+        bat "docker build -t %IMAGE%:%TAG% ."
+      }
     }
+    stage('Smoke Test') {
+      steps {
+        bat '''
+          docker rm -f monapp_test 2>nul || ver > nul
+          docker run -d --name monapp_test -p 8082:80 %IMAGE%:%TAG%
+          ping -n 3 127.0.0.1 > nul
+          curl -I http://localhost:8082 | find "200 OK"
+          docker rm -f monapp_test
+        '''
+      }
+    }
+    stage('Push (Docker Hub)') {
+      steps {
+        // On ajoutera les identifiants Docker Hub plus tard, on va d'abord tester le Build
+        bat 'echo "Le push sera configuré à l\'étape suivante"'
+      }
+    }
+  }
 }
